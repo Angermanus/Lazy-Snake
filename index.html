@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lazy Snake</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Press Start 2P', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: none;
+            padding-top: 5px;
+        }
+        h1 {
+            margin: 4px 0;
+            font-size: 15px;
+            letter-spacing: 2px;
+            color: #00ff66;
+            text-shadow: 2px 2px #000000;
+        }
+        #score-board {
+            font-size: 8px;
+            margin-bottom: 6px;
+            display: flex;
+            gap: 12px;
+            text-align: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        /* Top D-Pad for Player 2 in Co-op */
+        #top-dpad-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 6px;
+        }
+        .top-dpad {
+            position: relative;
+            width: 90px;
+            height: 90px;
+        }
+        .top-dpad-btn {
+            position: absolute;
+            background: rgba(40, 80, 160, 0.85);
+            color: #00ffff;
+            border: 2px solid #00ffff;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            border-radius: 6px;
+        }
+        .top-dpad-btn:active {
+            background: #00ffff;
+            color: #1a1a1a;
+        }
+        #p2-up { top: 0; left: 30px; width: 30px; height: 28px; border-radius: 6px 6px 0 0; }
+        #p2-down { bottom: 0; left: 30px; width: 30px; height: 28px; border-radius: 0 0 6px 6px; }
+        #p2-left { top: 30px; left: 0; width: 28px; height: 30px; border-radius: 6px 0 0 6px; }
+        #p2-right { top: 30px; right: 0; width: 28px; height: 30px; border-radius: 0 6px 6px 0; }
+
+        .canvas-container {
+            position: relative;
+            width: 80vw;
+            height: 80vw;
+            max-width: 360px;
+            max-height: 360px;
+        }
+        canvas {
+            border: 4px solid #000000;
+            background-color: #222222;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        #menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 15px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+        #menu-overlay h2 {
+            font-size: 14px;
+            color: #ffffff;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            text-shadow: 2px 2px #000000;
+        }
+        #menu-overlay p {
+            font-size: 7px;
+            color: #aaaaaa;
+            margin: 5px 0;
+            line-height: 1.4;
+        }
+        .menu-options {
+            margin: 10px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .menu-btn {
+            background: #222;
+            color: #ffb000;
+            border: 2px solid #ffb000;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 7px;
+            padding: 8px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: 0.1s;
+            pointer-events: auto;
+        }
+        .menu-btn.active {
+            background: #ffb000;
+            color: #1a1a1a;
+        }
+        .hidden {
+            display: none !important;
+        }
+
+        #gameboy-console {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 90vw;
+            max-width: 400px;
+            background: rgba(40, 40, 40, 0.85);
+            border: 3px solid #555;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-top: 8px;
+            box-sizing: border-box;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.5);
+            z-index: 20;
+        }
+
+        .dpad {
+            position: relative;
+            width: 100px;
+            height: 100px;
+        }
+        .dpad-btn {
+            position: absolute;
+            background: rgba(60, 60, 60, 0.9);
+            color: #00ff66;
+            border: 2px solid #00ff66;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .dpad-btn:active {
+            background: #00ff66;
+            color: #1a1a1a;
+        }
+        #t-up { top: 0; left: 32px; width: 36px; height: 34px; border-radius: 6px 6px 0 0; }
+        #t-down { bottom: 0; left: 32px; width: 36px; height: 34px; border-radius: 0 0 6px 6px; }
+        #t-left { top: 32px; left: 0; width: 34px; height: 36px; border-radius: 6px 0 0 6px; }
+        #t-right { top: 32px; right: 0; width: 34px; height: 36px; border-radius: 0 6px 6px 0; }
+
+        .action-pad {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+        .action-row {
+            display: flex;
+            gap: 8px;
+        }
+        .gameboy-btn {
+            background: rgba(80, 20, 20, 0.85);
+            color: #ffcc00;
+            border: 2px solid #ffcc00;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 7px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .gameboy-btn:active {
+            background: #ffcc00;
+            color: #1a1a1a;
+        }
+        #btn-esc {
+            background: rgba(30, 30, 80, 0.85);
+            color: #00ffff;
+            border-color: #00ffff;
+        }
+        #btn-esc:active {
+            background: #00ffff;
+            color: #1a1a1a;
+        }
+
+        @keyframes glowAnimation {
+            0% { color: #00ff66; text-shadow: 0 0 2px #00ff66, 0 0 5px #005522; }
+            50% { color: #ffcc00; text-shadow: 0 0 8px #ffaa00, 0 0 12px #ff6600; }
+            100% { color: #00ff66; text-shadow: 0 0 2px #00ff66, 0 0 5px #005522; }
+        }
+
+        .credits {
+            margin-top: 6px;
+            font-size: 6px;
+            font-family: 'Press Start 2P', monospace;
+            letter-spacing: 1px;
+            animation: glowAnimation 2s infinite ease-in-out;
+            pointer-events: none;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>LAZY SNAKE</h1>
+    <div id="score-board">
+        <div>Mode: <span id="mode-display">Solo</span></div>
+        <div>Info: <span id="info-label">Level</span>: <span id="level-display">1</span>/10</div>
+        <div>Score: <span id="score">0</span></div>
+        <div>Time: <span id="timer" style="color: #ff3333;">10.0</span>s</div>
+    </div>
+    
+    <button id="musicToggleBtn" style="position: absolute; top: 8px; right: 8px; z-index: 100; padding: 4px 8px; background: #222; color: #00ffcc; border: 2px solid #00ffcc; font-family: monospace; font-size: 9px; cursor: pointer; border-radius: 4px;">
+        🎵 Music: ON
+    </button>
+
+    <!-- Top D-Pad for Player 2 (Visible only in Co-op) -->
+    <div id="top-dpad-container" class="hidden">
+        <div class="top-dpad">
+            <div class="top-dpad-btn" id="p2-up">▲</div>
+            <div class="top-dpad-btn" id="p2-left">◀</div>
+            <div class="top-dpad-btn" id="p2-right">▶</div>
+            <div class="top-dpad-btn" id="p2-down">▼</div>
+        </div>
+    </div>
+
+    <div class="canvas-container" id="canvasContainer">
+        <canvas id="gameCanvas" width="32" height="32"></canvas>
+        
+        <div id="menu-overlay">
+            <h2 id="menu-title">LAZY SNAKE</h2>
+            <p id="menu-subtitle"></p>
+            
+            <div id="main-menu" class="menu-options">
+                <button class="menu-btn active">Solo Mode (Levels)</button>
+                <button class="menu-btn">CO-OP / Versus (1 Min Orange Rush)</button>
+                <button class="menu-btn">Snake Customizer</button>
+                <button class="menu-btn">Controls Settings</button>
+                <button class="menu-btn">How to play</button>
+            </div>
+
+            <div id="difficulty-selection" class="menu-options hidden">
+                <button class="menu-btn active" data-diff="easy">Easy (More Time)</button>
+                <button class="menu-btn" data-diff="normal">Normal</button>
+                <button class="menu-btn" data-diff="hard">Hardcore (Fast Timer)</button>
+            </div>
+
+            <div id="customizer-selection" class="hidden">
+                <p id="customizer-target-label" style="color: #ffb000; font-size: 7px; margin-bottom: 4px;">Editing: Player 1</p>
+                <div id="snake-preview" style="display: flex; gap: 4px; justify-content: center; margin: 10px 0;"></div>
+                <p id="current-part-label" style="color: #00ff66; font-size: 7px;">Editing: Head</p>
+            </div>
+
+            <div id="controls-selection" class="menu-options hidden">
+                <p id="controls-info" style="color: #ffcc00; font-size: 6px;"></p>
+                <button class="menu-btn active" data-ctrl="p1_up">P1 Up: <span id="key-p1_up">W</span></button>
+                <button class="menu-btn" data-ctrl="p1_down">P1 Down: <span id="key-p1_down">S</span></button>
+                <button class="menu-btn" data-ctrl="p1_left">P1 Left: <span id="key-p1_left">A</span></button>
+                <button class="menu-btn" data-ctrl="p1_right">P1 Right: <span id="key-p1_right">D</span></button>
+                <button class="menu-btn" data-ctrl="p2_up">P2 Up: <span id="key-p2_up">ArrowUp</span></button>
+                <button class="menu-btn" data-ctrl="p2_down">P2 Down: <span id="key-p2_down">ArrowDown</span></button>
+                <button class="menu-btn" data-ctrl="p2_left">P2 Left: <span id="key-p2_left">ArrowLeft</span></button>
+                <button class="menu-btn" data-ctrl="p2_right">P2 Right: <span id="key-p2_right">ArrowRight</span></button>
+                <button class="menu-btn" data-ctrl="back">Back to Main Menu</button>
+            </div>
+
+            <div id="how-to-play-screen" class="hidden" style="text-align: left; max-width: 90%; font-size: 6px; line-height: 1.6; color: #cccccc; max-height: 220px; overflow-y: auto; padding: 5px;">
+                <p style="color: #00ff66; margin-bottom: 4px;"><strong>GAME MODES:</strong></p>
+                <p>• <strong>Solo:</strong> Clear 10 levels by eating oranges before time runs out. Avoid stone obstacles and your own tail!</p>
+                <p>• <strong>CO-OP / Versus:</strong> 1-minute orange rush. Compete against another player for the highest score.</p>
+                <p style="color: #00ff66; margin: 8px 0 4px 0;"><strong>CONTROLS & MOVEMENT:</strong></p>
+                <p>• <strong>Player 1 Movement:</strong> W (Up), A (Left), S (Down), D (Right) or Bottom D-Pad.</p>
+                <p>• <strong>Player 2 Movement:</strong> Arrow Keys or Top D-Pad in Co-op mode.</p>
+                <p>• <strong>Menu Navigation:</strong> Use Up/Down to select options, ENTER to confirm, and ESC to go back.</p>
+            </div>
+
+            <p id="final-stats" class="hidden"></p>
+            <p id="action-prompt" style="color: #00ff66; margin-top: 10px; font-size: 8px;" class="hidden"></p>
+        </div>
+    </div>
+
+    <div id="gameboy-console">
+        <div class="dpad">
+            <div class="dpad-btn" id="t-up">▲</div>
+            <div class="dpad-btn" id="t-left">◀</div>
+            <div class="dpad-btn" id="t-right">▶</div>
+            <div class="dpad-btn" id="t-down">▼</div>
+        </div>
+        <div class="action-pad">
+            <div class="action-row">
+                <div class="gameboy-btn" id="btn-enter">ENTER</div>
+                <div class="gameboy-btn" id="btn-esc">ESC</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="credits">Lazy Snake Edition</div>
+
+    <script>
+        let audioCtx = null;
+        let isMusicPlaying = true;
+        let musicTimer = null;
+        let currentStepDelay = 250;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        const menuMelody = [392.00, 0, 440.00, 0, 523.25, 493.88, 392.00, 0, 329.63, 0, 392.00, 0, 293.66, 0, 246.94, 0];
+        const gameMelody = [220.00, 246.94, 261.63, 293.66, 329.63, 0, 329.63, 293.66, 349.23, 0, 329.63, 293.66, 261.63, 0, 196.00, 0];
+        let noteIndex = 0;
+
+        function playTone(freq, duration) {
+            if (!audioCtx || !isMusicPlaying || freq === 0) return;
+            try {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'triangle'; 
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime); 
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        let noiseBuffer = null;
+        function getNoiseBuffer() {
+            if (noiseBuffer || !audioCtx) return noiseBuffer;
+            let bufferSize = audioCtx.sampleRate * 0.5;
+            noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            let output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+            return noiseBuffer;
+        }
+
+        function playDrum(type) {
+            if (!audioCtx || !isMusicPlaying) return;
+            try {
+                if (type === 'hihat') {
+                    let noise = audioCtx.createBufferSource();
+                    noise.buffer = getNoiseBuffer();
+                    let filter = audioCtx.createBiquadFilter();
+                    filter.type = 'highpass'; filter.frequency.value = 7000;
+                    let gain = audioCtx.createGain();
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.03);
+                    noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+                    noise.start(); noise.stop(audioCtx.currentTime + 0.03);
+                } else if (type === 'kick') {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.12);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.12);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.12);
+                } else if (type === 'snare') {
+                    let noise = audioCtx.createBufferSource();
+                    noise.buffer = getNoiseBuffer();
+                    let filter = audioCtx.createBiquadFilter();
+                    filter.type = 'bandpass'; filter.frequency.value = 1800;
+                    let gain = audioCtx.createGain();
+                    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.08);
+                    noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+                    noise.start(); noise.stop(audioCtx.currentTime + 0.08);
+                }
+            } catch (e) {}
+        }
+
+        let beatIndex = 0;
+        function scheduleNextNote() {
+            if (!isMusicPlaying) return;
+            let currentMelody = (['MAIN_MENU', 'DIFFICULTY', 'CUSTOMIZE', 'CONTROLS', 'REBIND', 'HOW_TO_PLAY'].includes(gameState)) ? menuMelody : gameMelody;
+            playTone(currentMelody[noteIndex], 0.15);
+            noteIndex = (noteIndex + 1) % currentMelody.length;
+
+            let modBeat = beatIndex % 4;
+            if (modBeat === 0) { playDrum('kick'); playDrum('hihat'); }
+            else if (modBeat === 2) { playDrum('snare'); playDrum('hihat'); }
+            else { playDrum('hihat'); }
+
+            beatIndex++;
+            musicTimer = setTimeout(scheduleNextNote, currentStepDelay);
+        }
+
+        function startBackgroundMusic() {
+            initAudio();
+            if (isMusicPlaying && musicTimer) return;
+            isMusicPlaying = true;
+            noteIndex = 0; beatIndex = 0;
+            if (musicTimer) clearTimeout(musicTimer);
+            scheduleNextNote();
+        }
+
+        function stopBackgroundMusic() {
+            isMusicPlaying = false;
+            if (musicTimer) { clearTimeout(musicTimer); musicTimer = null; }
+        }
+
+        const musicBtn = document.getElementById('musicToggleBtn');
+        function toggleMusic() {
+            initAudio();
+            if (isMusicPlaying) {
+                stopBackgroundMusic();
+                musicBtn.textContent = "🎵 Music: OFF";
+                musicBtn.style.borderColor = "#ffb000";
+                musicBtn.style.color = "#ffb000";
+            } else {
+                startBackgroundMusic();
+                musicBtn.textContent = "🎵 Music: ON";
+                musicBtn.style.borderColor = "#00ffcc";
+                musicBtn.style.color = "#00ffcc";
+            }
+        }
+        if (musicBtn) {
+            musicBtn.addEventListener('click', toggleMusic);
+            musicBtn.addEventListener('contextmenu', (e) => { e.preventDefault(); toggleMusic(); });
+        }
+
+        function unlockAudioOnFirstInteraction() {
+            initAudio();
+            if (isMusicPlaying && !musicTimer) {
+                startBackgroundMusic();
+            }
+            window.removeEventListener('keydown', unlockAudioOnFirstInteraction);
+            window.removeEventListener('click', unlockAudioOnFirstInteraction);
+            window.removeEventListener('touchstart', unlockAudioOnFirstInteraction);
+        }
+        window.addEventListener('keydown', unlockAudioOnFirstInteraction);
+        window.addEventListener('click', unlockAudioOnFirstInteraction);
+        window.addEventListener('touchstart', unlockAudioOnFirstInteraction);
+
+        let savedColorsP1 = localStorage.getItem('snakeColorsP1');
+        let snakeColorsP1 = savedColorsP1 ? JSON.parse(savedColorsP1) : ['#00bb00', '#007700', '#007700', '#007700', '#007700', '#007700'];
+
+        let savedColorsP2 = localStorage.getItem('snakeColorsP2');
+        let snakeColorsP2 = savedColorsP2 ? JSON.parse(savedColorsP2) : ['#3366ff', '#2244bb', '#2244bb', '#2244bb', '#2244bb', '#2244bb'];
+
+        let defaultKeys = {
+            p1_up: 'KeyW', p1_down: 'KeyS', p1_left: 'KeyA', p1_right: 'KeyD',
+            p2_up: 'ArrowUp', p2_down: 'ArrowDown', p2_left: 'ArrowLeft', p2_right: 'ArrowRight'
+        };
+        let savedKeys = localStorage.getItem('snakeKeys');
+        let gameKeys = savedKeys ? JSON.parse(savedKeys) : defaultKeys;
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const infoLabel = document.getElementById('info-label');
+        const levelDisplay = document.getElementById('level-display');
+        const timerElement = document.getElementById('timer');
+        const modeDisplay = document.getElementById('mode-display');
+        
+        const menuOverlay = document.getElementById('menu-overlay');
+        const menuTitle = document.getElementById('menu-title');
+        const menuSubtitle = document.getElementById('menu-subtitle');
+        const mainMenu = document.getElementById('main-menu');
+        const difficultySelection = document.getElementById('difficulty-selection');
+        const customizerSelection = document.getElementById('customizer-selection');
+        const controlsSelection = document.getElementById('controls-selection');
+        const howToPlayScreen = document.getElementById('how-to-play-screen');
+        const topDpadContainer = document.getElementById('top-dpad-container');
+        const snakePreviewContainer = document.getElementById('snake-preview');
+        const currentPartLabel = document.getElementById('current-part-label');
+        const customizerTargetLabel = document.getElementById('customizer-target-label');
+        const finalStats = document.getElementById('final-stats');
+        const actionPrompt = document.getElementById('action-prompt');
+
+        const gridSize = 32; 
+        let snake = [];
+        let snake2 = []; 
+        let obstacles = []; 
+        let food = { x: 0, y: 0 };
+        
+        let gameMode = 'solo'; 
+        let currentLevel = 1;
+        let score = 0;
+        let score2 = 0;
+        let targetScore = 5;
+        let timeLeft = 10.0;
+        let selectedDifficulty = 'easy';
+        let gameState = 'MAIN_MENU'; 
+        let timerInterval = null;
+        let coopFoodTimerInterval = null;
+
+        let menuIndex = 0;
+        const mainMenuButtons = mainMenu.querySelectorAll('.menu-btn');
+        const diffButtons = difficultySelection.querySelectorAll('.menu-btn');
+        const controlButtons = controlsSelection.querySelectorAll('.menu-btn');
+        let diffIndex = 0;
+        let controlIndex = 0;
+        let rebindingKeyName = null;
+
+        const availableColors = [
+            '#00bb00', '#00ffcc', '#ff3366', '#ffcc00', '#9933ff', 
+            '#3366ff', '#ffffff', '#ff6600', '#ff00ff', '#00ffff', 
+            '#ffff00', '#ff0000', '#00ff00', '#888888', '#442211'
+        ];
+        let currentCustomIndex = 0;
+        let customizingPlayer = 1; 
+
+        function updateMenuUI() {
+            if (gameState === 'MAIN_MENU') {
+                mainMenuButtons.forEach((btn, i) => btn.classList.toggle('active', i === menuIndex));
+            } else if (gameState === 'DIFFICULTY') {
+                diffButtons.forEach((btn, i) => btn.classList.toggle('active', i === diffIndex));
+            } else if (gameState === 'CONTROLS' || gameState === 'REBIND') {
+                controlButtons.forEach((btn, i) => btn.classList.toggle('active', i === controlIndex));
+                for (let k in gameKeys) {
+                    let span = document.getElementById('key-' + k);
+                    if (span) span.textContent = gameKeys[k];
+                }
+            }
+        }
+
+        function initCustomizerUI() {
+            snakePreviewContainer.innerHTML = '';
+            let activeColors = customizingPlayer === 1 ? snakeColorsP1 : snakeColorsP2;
+            customizerTargetLabel.textContent = `Editing: Player ${customizingPlayer} (Switch: Space/Tab)`;
+
+            activeColors.forEach((color, idx) => {
+                let div = document.createElement('div');
+                div.style.width = '20px';
+                div.style.height = '20px';
+                div.style.backgroundColor = color;
+                div.style.border = (idx === currentCustomIndex) ? '2px solid #fff' : '1px solid #444';
+                div.style.boxSizing = 'border-box';
+                snakePreviewContainer.appendChild(div);
+            });
+            let partNames = ['Head', 'Body 1', 'Body 2', 'Body 3', 'Body 4', 'Tail'];
+            currentPartLabel.textContent = `Editing: ${partNames[currentCustomIndex]} (${activeColors[currentCustomIndex]})`;
+        }
+
+        function setupGame() {
+            score = 0;
+            score2 = 0;
+
+            if (timerInterval) clearInterval(timerInterval);
+            if (coopFoodTimerInterval) clearInterval(coopFoodTimerInterval);
+
+            if (gameMode === 'solo') {
+                topDpadContainer.classList.add('hidden');
+                modeDisplay.textContent = "Solo";
+                infoLabel.textContent = "Level";
+                targetScore = currentLevel * 5;
+                levelDisplay.textContent = `${currentLevel}/10 (${score}/${targetScore})`;
+
+                let baseTime = selectedDifficulty === 'easy' ? 14.0 : (selectedDifficulty === 'normal' ? 11.0 : 8.0);
+                timeLeft = baseTime + (currentLevel - 1) * 1.5; 
+
+                snake = [];
+                for (let x = 18; x >= 13; x--) snake.push({ x: x, y: 16 });
+
+                obstacles = [];
+                let stoneCount = 4 + (currentLevel * 3); 
+                for (let i = 0; i < stoneCount; i++) spawnStone();
+                spawnFood();
+            } else if (gameMode === 'coop') {
+                topDpadContainer.classList.remove('hidden');
+                modeDisplay.textContent = "CO-OP";
+                infoLabel.textContent = "Scores";
+                levelDisplay.textContent = `P1: ${score} | P2: ${score2}`;
+                timeLeft = 60.0;
+
+                snake = [];
+                for (let x = 10; x >= 6; x--) snake.push({ x: x, y: 16 });
+
+                snake2 = [];
+                for (let x = 22; x <= 26; x++) snake2.push({ x: x, y: 16 });
+
+                obstacles = []; 
+                spawnFood();
+
+                coopFoodTimerInterval = setInterval(() => {
+                    if (gameState === 'PLAYING') {
+                        spawnFood();
+                        drawScene();
+                    }
+                }, 5000);
+            }
+
+            timerElement.textContent = timeLeft.toFixed(1);
+            currentStepDelay = 250;
+            drawScene();
+        }
+
+        function spawnFood() {
+            food.x = Math.floor(Math.random() * (gridSize - 4)) + 2;
+            food.y = Math.floor(Math.random() * (gridSize - 4)) + 2;
+            let collision = snake.some(p => p.x === food.x && p.y === food.y) || 
+                            (gameMode === 'coop' && snake2.some(p => p.x === food.x && p.y === food.y)) ||
+                            obstacles.some(obs => obs.x === food.x && obs.y === food.y);
+            if (collision) spawnFood();
+        }
+
+        function spawnStone() {
+            let obsX = Math.floor(Math.random() * (gridSize - 4)) + 2;
+            let obsY = Math.floor(Math.random() * (gridSize - 4)) + 2;
+            let overlap = snake.some(p => p.x === obsX && p.y === obsY) || 
+                          (food.x === obsX && food.y === obsY) ||
+                          obstacles.some(obs => obs.x === obsX && obs.y === obsY);
+            if (!overlap) obstacles.push({ x: obsX, y: obsY });
+            else spawnStone();
+        }
+
+        function drawTexturedBackground() {
+            for (let x = 0; x < gridSize; x++) {
+                for (let y = 0; y < gridSize; y++) {
+                    ctx.fillStyle = (x + y) % 4 === 0 ? '#2a2a2a' : ((x * y) % 7 === 0 ? '#222222' : '#252525');
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+            ctx.strokeStyle = '#444444';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(0, 0, gridSize, gridSize);
+        }
+
+        function drawScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawTexturedBackground();
+            drawObstacles();
+            drawFood();
+            drawSnake();
+            if (gameMode === 'coop') drawSnake2();
+        }
+
+        function drawSnake() {
+            snake.forEach((part, index) => {
+                let colorIndex = index < snakeColorsP1.length ? index : snakeColorsP1.length - 1;
+                ctx.fillStyle = snakeColorsP1[colorIndex];
+                ctx.fillRect(part.x, part.y, 1, 1);
+            });
+        }
+
+        function drawSnake2() {
+            snake2.forEach((part, index) => {
+                let colorIndex = index < snakeColorsP2.length ? index : snakeColorsP2.length - 1;
+                ctx.fillStyle = snakeColorsP2[colorIndex];
+                ctx.fillRect(part.x, part.y, 1, 1);
+            });
+        }
+
+        function drawFood() {
+            ctx.fillStyle = '#ff7700'; ctx.fillRect(food.x, food.y, 1, 1);
+            ctx.fillStyle = '#ffaa00'; ctx.fillRect(food.x + 0.2, food.y + 0.2, 0.6, 0.6);
+            ctx.fillStyle = '#00cc44'; ctx.fillRect(food.x + 0.4, food.y, 0.3, 0.3);
+        }
+
+        function drawObstacles() {
+            ctx.fillStyle = '#666666'; 
+            obstacles.forEach(obs => { ctx.fillRect(obs.x, obs.y, 1, 1); });
+        }
+
+        function moveSnake(s, dx, dy, isPlayer2 = false) {
+            if (gameState !== 'PLAYING') return;
+            const head = { x: s[0].x + dx, y: s[0].y + dy };
+            
+            if (head.x < 0 || head.x >= gridSize || head.y < 0 || head.y >= gridSize) {
+                if (gameMode === 'coop') {
+                    s[0].x = Math.floor(gridSize / 2);
+                    s[0].y = Math.floor(gridSize / 2);
+                    return;
+                } else {
+                    gameOver("YOU DIED");
+                    return;
+                }
+            }
+
+            s.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                if (isPlayer2) {
+                    score2++;
+                } else {
+                    score++;
+                    scoreElement.textContent = score;
+                    if (gameMode === 'solo') {
+                        levelDisplay.textContent = `${currentLevel}/10 (${score}/${targetScore})`;
+                        let timeBonus = selectedDifficulty === 'hard' ? 2.0 : 3.0;
+                        timeLeft = Math.min(25.0, timeLeft + timeBonus);
+                    }
+                }
+
+                if (gameMode === 'coop') {
+                    levelDisplay.textContent = `P1: ${score} | P2: ${score2}`;
+                    if (coopFoodTimerInterval) clearInterval(coopFoodTimerInterval);
+                    spawnFood();
+                    coopFoodTimerInterval = setInterval(() => {
+                        if (gameState === 'PLAYING') {
+                            spawnFood();
+                            drawScene();
+                        }
+                    }, 5000);
+                } else if (gameMode === 'solo' && score >= targetScore) {
+                    if (currentLevel >= 10) gameVictory();
+                    else startLevelTransition();
+                    return;
+                }
+
+                spawnFood();
+            } else {
+                s.pop();
+            }
+
+            if (hasGameEnded(head, s, isPlayer2)) {
+                if (gameMode === 'coop') {
+                    s.splice(1); 
+                } else {
+                    gameOver("YOU DIED");
+                    return;
+                }
+            }
+
+            drawScene();
+        }
+
+        function hasGameEnded(head, currentSnake, isPlayer2) {
+            for (let i = 2; i < currentSnake.length; i++) {
+                if (currentSnake[i].x === head.x && currentSnake[i].y === head.y) return true;
+            }
+            if (gameMode === 'solo') {
+                for (let obs of obstacles) {
+                    if (obs.x === head.x && obs.y === head.y) return true;
+                }
+            }
+            return false;
+        }
+
+        function updateTimer() {
+            if (gameState !== 'PLAYING') return;
+            timeLeft = Math.max(0, timeLeft - 0.1);
+            timerElement.textContent = timeLeft.toFixed(1);
+            
+            if (timeLeft <= 0) {
+                if (gameMode === 'coop') {
+                    if (coopFoodTimerInterval) clearInterval(coopFoodTimerInterval);
+                    if (score > score2) gameOver("P1 WINS!");
+                    else if (score2 > score) gameOver("P2 WINS!");
+                    else gameOver("IT'S A TIE!");
+                } else {
+                    gameOver("TIME'S UP!");
+                }
+            }
+        }
+
+        function startLevelTransition() {
+            gameState = 'TRANSITION';
+            if (timerInterval) clearInterval(timerInterval);
+            menuTitle.textContent = `LEVEL ${currentLevel} CLEARED!`;
+            menuSubtitle.textContent = `Get ready for Level ${currentLevel + 1}`;
+            hideAllMenus();
+            menuOverlay.classList.remove('hidden');
+
+            let countdown = 3;
+            let transInterval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    menuSubtitle.textContent = `Next Level in ${countdown}...`;
+                } else {
+                    clearInterval(transInterval);
+                    menuOverlay.classList.add('hidden');
+                    currentLevel++;
+                    setupGame();
+                    gameState = 'PLAYING';
+                    timerInterval = setInterval(updateTimer, 100);
+                }
+            }, 1000);
+        }
+
+        function gameOver(reason) {
+            gameState = 'GAMEOVER';
+            if (timerInterval) clearInterval(timerInterval);
+            if (coopFoodTimerInterval) clearInterval(coopFoodTimerInterval);
+            topDpadContainer.classList.add('hidden');
+            hideAllMenus();
+            menuTitle.textContent = reason;
+            menuSubtitle.textContent = gameMode === 'solo' ? `Reached Level ${currentLevel}` : `P1: ${score} | P2: ${score2}`;
+            finalStats.classList.remove('hidden');
+            finalStats.textContent = `Game Over`;
+            actionPrompt.textContent = "PRESS ENTER TO MENU";
+            actionPrompt.classList.remove('hidden');
+            menuOverlay.classList.remove('hidden');
+        }
+
+        function gameVictory() {
+            gameState = 'VICTORY';
+            if (timerInterval) clearInterval(timerInterval);
+            if (coopFoodTimerInterval) clearInterval(coopFoodTimerInterval);
+            topDpadContainer.classList.add('hidden');
+            hideAllMenus();
+            menuTitle.textContent = "VICTORY!";
+            menuSubtitle.textContent = "CONGRATS KING COBRA!";
+            finalStats.classList.remove('hidden');
+            finalStats.textContent = `ORANGE DEVOURER`;
+            actionPrompt.textContent = "PRESS ENTER TO MENU";
+            actionPrompt.classList.remove('hidden');
+            menuOverlay.classList.remove('hidden');
+        }
+
+        function hideAllMenus() {
+            mainMenu.classList.add('hidden');
+            difficultySelection.classList.add('hidden');
+            customizerSelection.classList.add('hidden');
+            controlsSelection.classList.add('hidden');
+            howToPlayScreen.classList.add('hidden');
+            finalStats.classList.add('hidden');
+            actionPrompt.classList.add('hidden');
+        }
+
+        function showMainMenu() {
+            gameState = 'MAIN_MENU';
+            if (timerInterval) clearInterval(timerInterval);
+            if (coopFoodTimerInterval) clearInterval(coopFoodTimerInterval);
+            topDpadContainer.classList.add('hidden');
+            hideAllMenus();
+            mainMenu.classList.remove('hidden');
+            menuTitle.textContent = "LAZY SNAKE";
+            menuSubtitle.textContent = "";
+            menuOverlay.classList.remove('hidden');
+            menuIndex = 0;
+            updateMenuUI();
+        }
+
+        function handleAction(action) {
+            if (gameState === 'PLAYING') {
+                if (action === 'up') moveSnake(snake, 0, -1, false);
+                else if (action === 'down') moveSnake(snake, 0, 1, false);
+                else if (action === 'left') moveSnake(snake, -1, 0, false);
+                else if (action === 'right') moveSnake(snake, 1, 0, false);
+            } else if (gameState === 'MAIN_MENU') {
+                if (action === 'up') {
+                    menuIndex = (menuIndex - 1 + mainMenuButtons.length) % mainMenuButtons.length;
+                    updateMenuUI();
+                } else if (action === 'down') {
+                    menuIndex = (menuIndex + 1) % mainMenuButtons.length;
+                    updateMenuUI();
+                } else if (action === 'enter') {
+                    triggerMenuAction();
+                }
+            } else if (gameState === 'DIFFICULTY') {
+                if (action === 'up') {
+                    diffIndex = (diffIndex - 1 + diffButtons.length) % diffButtons.length;
+                    updateMenuUI();
+                } else if (action === 'down') {
+                    diffIndex = (diffIndex + 1) % diffButtons.length;
+                    updateMenuUI();
+                } else if (action === 'enter') {
+                    selectedDifficulty = diffButtons[diffIndex].getAttribute('data-diff');
+                    gameMode = 'solo';
+                    currentLevel = 1;
+                    menuOverlay.classList.add('hidden');
+                    setupGame();
+                    gameState = 'PLAYING';
+                    timerInterval = setInterval(updateTimer, 100);
+                }
+            } else if (gameState === 'CUSTOMIZE') {
+                if (action === 'left' || action === 'right') {
+                    let activeColors = customizingPlayer === 1 ? snakeColorsP1 : snakeColorsP2;
+                    currentCustomIndex = (currentCustomIndex + (action === 'right' ? 1 : -1) + activeColors.length) % activeColors.length;
+                    initCustomizerUI();
+                } else if (action === 'up' || action === 'down') {
+                    let activeColors = customizingPlayer === 1 ? snakeColorsP1 : snakeColorsP2;
+                    let colorIdx = availableColors.indexOf(activeColors[currentCustomIndex]);
+                    colorIdx = (colorIdx + (action === 'up' ? 1 : -1) + availableColors.length) % availableColors.length;
+                    activeColors[currentCustomIndex] = availableColors[colorIdx];
+                    if (customizingPlayer === 1) localStorage.setItem('snakeColorsP1', JSON.stringify(snakeColorsP1));
+                    else localStorage.setItem('snakeColorsP2', JSON.stringify(snakeColorsP2));
+                    initCustomizerUI();
+                } else if (action === 'enter') {
+                    customizingPlayer = customizingPlayer === 1 ? 2 : 1;
+                    initCustomizerUI();
+                }
+            } else if (gameState === 'CONTROLS') {
+                if (action === 'up') {
+                    controlIndex = (controlIndex - 1 + controlButtons.length) % controlButtons.length;
+                    updateMenuUI();
+                } else if (action === 'down') {
+                    controlIndex = (controlIndex + 1 + controlButtons.length) % controlButtons.length;
+                    updateMenuUI();
+                } else if (action === 'enter') {
+                    let btn = controlButtons[controlIndex];
+                    let ctrlType = btn.getAttribute('data-ctrl');
+                    if (ctrlType === 'back') showMainMenu();
+                    else {
+                        rebindingKeyName = ctrlType;
+                        gameState = 'REBIND';
+                        document.getElementById('controls-info').textContent = `Press key for ${btn.textContent.split(':')[0]}...`;
+                    }
+                }
+            } else if (gameState === 'HOW_TO_PLAY') {
+                if (action === 'enter' || action === 'esc') {
+                    showMainMenu();
+                }
+            } else if (gameState === 'GAMEOVER' || gameState === 'VICTORY') {
+                if (action === 'enter') showMainMenu();
+            }
+
+            if (action === 'esc') {
+                if (['DIFFICULTY', 'CUSTOMIZE', 'CONTROLS', 'HOW_TO_PLAY', 'PLAYING', 'GAMEOVER', 'VICTORY'].includes(gameState)) {
+                    showMainMenu();
+                } else if (gameState === 'REBIND') {
+                    gameState = 'CONTROLS';
+                    document.getElementById('controls-info').textContent = "";
+                    updateMenuUI();
+                }
+            }
+        }
+
+        function triggerMenuAction() {
+            if (menuIndex === 0) {
+                gameState = 'DIFFICULTY';
+                mainMenu.classList.add('hidden');
+                difficultySelection.classList.remove('hidden');
+                menuTitle.textContent = "DIFFICULTY";
+                menuSubtitle.textContent = "";
+                diffIndex = 0;
+                updateMenuUI();
+            } else if (menuIndex === 1) {
+                gameMode = 'coop';
+                menuOverlay.classList.add('hidden');
+                setupGame();
+                gameState = 'PLAYING';
+                timerInterval = setInterval(updateTimer, 100);
+            } else if (menuIndex === 2) {
+                gameState = 'CUSTOMIZE';
+                mainMenu.classList.add('hidden');
+                customizerSelection.classList.remove('hidden');
+                menuTitle.textContent = "CUSTOMIZER";
+                menuSubtitle.textContent = "Enter to switch player";
+                currentCustomIndex = 0;
+                customizingPlayer = 1;
+                initCustomizerUI();
+            } else if (menuIndex === 3) {
+                gameState = 'CONTROLS';
+                mainMenu.classList.add('hidden');
+                controlsSelection.classList.remove('hidden');
+                menuTitle.textContent = "CONTROLS";
+                menuSubtitle.textContent = "";
+                controlIndex = 0;
+                updateMenuUI();
+            } else if (menuIndex === 4) {
+                gameState = 'HOW_TO_PLAY';
+                mainMenu.classList.add('hidden');
+                howToPlayScreen.classList.remove('hidden');
+                menuTitle.textContent = "HOW TO PLAY";
+                menuSubtitle.textContent = "Press ESC to return";
+            }
+        }
+
+        // Bottom D-Pad (Player 1)
+        document.getElementById('t-up').addEventListener('click', () => handleAction('up'));
+        document.getElementById('t-down').addEventListener('click', () => handleAction('down'));
+        document.getElementById('t-left').addEventListener('click', () => handleAction('left'));
+        document.getElementById('t-right').addEventListener('click', () => handleAction('right'));
+        
+        // Top D-Pad (Player 2 - Co-op only)
+        document.getElementById('p2-up').addEventListener('click', () => { if(gameMode === 'coop') moveSnake(snake2, 0, -1, true); });
+        document.getElementById('p2-down').addEventListener('click', () => { if(gameMode === 'coop') moveSnake(snake2, 0, 1, true); });
+        document.getElementById('p2-left').addEventListener('click', () => { if(gameMode === 'coop') moveSnake(snake2, -1, 0, true); });
+        document.getElementById('p2-right').addEventListener('click', () => { if(gameMode === 'coop') moveSnake(snake2, 1, 0, true); });
+
+        document.getElementById('btn-enter').addEventListener('click', () => handleAction('enter'));
+        document.getElementById('btn-esc').addEventListener('click', () => handleAction('esc'));
+
+        window.addEventListener('keydown', (event) => {
+            const code = event.code;
+
+            if (gameState === 'REBIND') {
+                event.preventDefault();
+                gameKeys[rebindingKeyName] = code;
+                localStorage.setItem('snakeKeys', JSON.stringify(gameKeys));
+                gameState = 'CONTROLS';
+                document.getElementById('controls-info').textContent = "";
+                updateMenuUI();
+                return;
+            }
+
+            if (code === 'Escape') {
+                event.preventDefault();
+                handleAction('esc');
+                return;
+            }
+            if (code === 'Enter') {
+                event.preventDefault();
+                handleAction('enter');
+                return;
+            }
+
+            if (gameState === 'PLAYING') {
+                if ([gameKeys.p1_left, gameKeys.p1_right, gameKeys.p1_up, gameKeys.p1_down, 
+                     gameKeys.p2_left, gameKeys.p2_right, gameKeys.p2_up, gameKeys.p2_down].includes(code)) {
+                    event.preventDefault();
+                }
+
+                if (code === gameKeys.p1_left) moveSnake(snake, -1, 0, false);
+                else if (code === gameKeys.p1_up) moveSnake(snake, 0, -1, false);
+                else if (code === gameKeys.p1_right) moveSnake(snake, 1, 0, false);
+                else if (code === gameKeys.p1_down) moveSnake(snake, 0, 1, false);
+
+                if (gameMode === 'coop') {
+                    if (code === gameKeys.p2_left) moveSnake(snake2, -1, 0, true);
+                    else if (code === gameKeys.p2_up) moveSnake(snake2, 0, -1, true);
+                    else if (code === gameKeys.p2_right) moveSnake(snake2, 1, 0, true);
+                    else if (code === gameKeys.p2_down) moveSnake(snake2, 0, 1, true);
+                }
+                return;
+            }
+
+            if (code === 'KeyW' || code === 'ArrowUp') {
+                event.preventDefault();
+                handleAction('up');
+            } else if (code === 'KeyS' || code === 'ArrowDown') {
+                event.preventDefault();
+                handleAction('down');
+            } else if (code === 'KeyA' || code === 'ArrowLeft') {
+                event.preventDefault();
+                handleAction('left');
+            } else if (code === 'KeyD' || code === 'ArrowRight') {
+                event.preventDefault();
+                handleAction('right');
+            }
+        });
+
+        showMainMenu();
+    </script>
+</body>
+</html>
